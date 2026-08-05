@@ -3,366 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>가울 제안서 및 매핑 자동화 시스템</title>
-    <!-- Modern Typography & Icons -->
+    <title>가울 제안서 자동화 시스템</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- SheetJS (Excel Parser/Generator) & JSZip -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-    
-    <style>
-        :root {
-            --bg: #0f1117;
-            --bg-card: #181b25;
-            --bg-card-hover: #1e2230;
-            --bg-surface: #232838;
-            --border: #2a2f3e;
-            --border-hover: #3d4560;
-            --text: #e8eaf0;
-            --text-muted: #8a90a4;
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
-            --accent: #10b981;
-            --accent-hover: #059669;
-            --danger: #ef4444;
-            --radius: 12px;
-            --shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Pretendard', -apple-system, sans-serif; }
-        body { background-color: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 50px; line-height: 1.5; }
-
-        header {
-            background: rgba(24, 27, 37, 0.8);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-            padding: 16px 32px;
-            position: sticky; top: 0; z-index: 100;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-
-        .logo-area { display: flex; align-items: center; gap: 12px; }
-        .logo-badge { background: linear-gradient(135deg, #6366f1, #a855f7); color: white; font-weight: 800; padding: 6px 12px; border-radius: 8px; font-size: 14px; }
-        .logo-title { font-size: 18px; font-weight: 700; background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-        .container { max-width: 1280px; margin: 32px auto; padding: 0 24px; }
-
-        .nav-tabs { display: flex; gap: 12px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
-        .nav-tab { padding: 12px 24px; background: transparent; border: none; color: var(--text-muted); font-size: 15px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
-        .nav-tab.active { color: #818cf8; border-bottom-color: #6366f1; }
-        .nav-tab:hover:not(.active) { color: var(--text); }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow); }
-        .card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #f1f5f9; }
-
-        .dropzone {
-            border: 2px dashed var(--border-hover); border-radius: var(--radius);
-            padding: 40px 20px; text-align: center; background: rgba(255,255,255,0.01);
-            cursor: pointer; transition: all 0.2s;
-        }
-        .dropzone:hover, .dropzone.dragover { border-color: var(--primary); background: rgba(99, 102, 241, 0.05); }
-        .dropzone-icon { font-size: 40px; margin-bottom: 12px; display: block; }
-        .dropzone-text { font-size: 15px; font-weight: 500; color: var(--text); }
-        .dropzone-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-
-        .btn {
-            background: var(--primary); color: white; border: none; padding: 10px 20px;
-            border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer;
-            transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
-        }
-        .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
-        .btn-accent { background: var(--accent); }
-        .btn-accent:hover { background: var(--accent-hover); }
-
-        .sheet-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-        .sheet-pill { padding: 6px 14px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; color: var(--text-muted); }
-        .sheet-pill.active { background: #312e81; border-color: #6366f1; color: #e0e7ff; font-weight: 600; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
-        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-        th { background: var(--bg-surface); color: var(--text-muted); font-weight: 600; }
-        tr:hover td { background: var(--bg-card-hover); }
-
-        .mapping-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-        .column-box { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; min-height: 300px; max-height: 450px; overflow-y: auto; }
-        .column-item { padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: grab; font-size: 13px; display: flex; justify-content: space-between; }
-        .column-item:hover { border-color: var(--primary); background: var(--bg-card-hover); }
-
-        .badge-tag { background: #334155; color: #cbd5e1; font-size: 11px; padding: 2px 6px; border-radius: 4px; }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-
-    <header>
-        <div class="logo-area">
-            <span class="logo-badge">GAOOL</span>
-            <span class="logo-title">가울 엑셀 제안서 & 매핑 자동화 웹앱</span>
-        </div>
-        <div style="font-size:13px; color:var(--text-muted);">
-            ✨ GitHub Pages 100% 무인 웹 서비스
+    <!-- Header -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <div class="logo-icon">G</div>
+                <div>
+                    <h1>가울 제안서 자동화</h1>
+                    <p class="subtitle">Proposal Generator</p>
+                </div>
+            </div>
+            <!-- Tab Navigation -->
+            <nav class="nav-tabs">
+                <button class="nav-tab active" data-page="generator" onclick="switchPage('generator')">⚡ 제안서 생성</button>
+                <button class="nav-tab" data-page="mapping" onclick="switchPage('mapping')">🔗 매핑 설정</button>
+            </nav>
+            <div class="header-status" id="statusBadge">
+                <span class="status-dot"></span> 대기중
+            </div>
         </div>
     </header>
 
-    <div class="container">
-        <div class="nav-tabs">
-            <button class="nav-tab active" onclick="switchTab('generator')">⚡ 제안서 생성기</button>
-            <button class="nav-tab" onclick="switchTab('mapping')">⚙️ 사방넷 - KT알파 매핑 가이드</button>
-        </div>
-
-        <!-- Tab 1: 제안서 자동 생성기 -->
-        <div id="tab-generator" class="tab-content active">
-            <div class="card">
-                <div class="card-title">📁 1. 구글시트 (엑셀 .xlsx) 업로드</div>
-                <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
-                    <span class="dropzone-icon">📊</span>
-                    <div class="dropzone-text">클릭하거나 엑셀 파일(.xlsx)을 이 곳에 드롭하세요</div>
-                    <div class="dropzone-sub">구글 시트에서 [파일] ➡️ [다운로드] ➡️ [Microsoft Excel (.xlsx)] 로 받은 파일</div>
-                    <input type="file" id="fileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleFileUpload(event)">
-                </div>
-                <div id="fileInfo" style="margin-top:12px; display:none; font-weight:600; color:var(--accent);"></div>
+    <!-- ==================== PAGE: 제안서 생성 ==================== -->
+    <main class="main page-content" id="page-generator">
+        <section class="card step-card" id="step1">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <div><h2>구글 시트 업로드</h2><p class="step-desc">프로모션 제안서_MASTER 파일을 xlsx로 다운로드 후 업로드하세요</p></div>
             </div>
-
-            <div class="card" id="sheetSelectCard" style="display:none;">
-                <div class="card-title">📅 2. 주차 시트 선택</div>
-                <div class="sheet-pills" id="sheetPills"></div>
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📁</div>
+                <p class="upload-text">파일을 드래그하거나 클릭하여 업로드</p>
+                <p class="upload-hint">.xlsx 파일만 지원</p>
+                <input type="file" id="fileInput" accept=".xlsx,.xls" hidden>
             </div>
-
-            <div class="card" id="productCard" style="display:none;">
-                <div class="card-title">
-                    <span>📦 3. 상품 목록 및 채널 제안서 생성</span>
-                    <button class="btn btn-accent" style="margin-left:auto;" onclick="generateProposals()">🚀 선택 채널 제안서 생성 및 다운로드</button>
-                </div>
-
-                <div style="margin-bottom:12px; display:flex; gap:16px;">
-                    <label><input type="checkbox" id="chkAll" checked onchange="toggleSelectAll(this.checked)"> 전체 선택</label>
-                    <span style="color:var(--text-muted);">|</span>
-                    <label><input type="checkbox" class="channel-chk" value="tdeal" checked> T딜</label>
-                    <label><input type="checkbox" class="channel-chk" value="kt" checked> KT</label>
-                    <label><input type="checkbox" class="channel-chk" value="uplus" checked> U+</label>
-                    <label><input type="checkbox" class="channel-chk" value="hyundai" checked> 현대샵</label>
-                    <label><input type="checkbox" class="channel-chk" value="kia" checked> 기아샵</label>
-                </div>
-
-                <div style="max-height:400px; overflow-y:auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width:40px;"><input type="checkbox" id="chkHeader" checked onchange="toggleSelectAll(this.checked)"></th>
-                                <th>카테고리</th>
-                                <th>상품명</th>
-                                <th>소비자가</th>
-                                <th>행사가</th>
-                                <th>공급가</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productTbody"></tbody>
-                    </table>
-                </div>
+            <div class="upload-info" id="uploadInfo" style="display:none">
+                <div class="file-badge"><span class="file-icon">📄</span><span id="fileName"></span><button class="btn-remove" onclick="resetUpload()">✕</button></div>
             </div>
-        </div>
-
-        <!-- Tab 2: 매핑 가이드 -->
-        <div id="tab-mapping" class="tab-content">
-            <div class="card">
-                <div class="card-title">💡 사방넷 ↔ KT알파쇼핑 항목 매핑 가이드</div>
-                <p style="color:var(--text-muted); font-size:14px; margin-bottom:16px;">
-                    사방넷 상품 정보와 KT알파쇼핑 등록 항목 간의 매핑 가이드 및 입력 기준입니다.
-                </p>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>번호</th>
-                            <th>사방넷 항목명</th>
-                            <th>Kt알파쇼핑 매칭 명</th>
-                            <th>입력할 값 예시</th>
-                            <th>비고 및 입력 팁</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>13</td>
-                            <td><span class="badge-tag">표시단위</span></td>
-                            <td>개당 단위값 (선택)</td>
-                            <td><strong>g</strong></td>
-                            <td>단위를 나타내는 기준입니다. 'g'으로 선택/입력합니다.</td>
-                        </tr>
-                        <tr>
-                            <td>14</td>
-                            <td><span class="badge-tag">총 용량</span></td>
-                            <td>전체 총 용량</td>
-                            <td><strong>500g</strong></td>
-                            <td>전체 중량 (예: 125g × 4 = 500g)</td>
-                        </tr>
-                        <tr>
-                            <td>15</td>
-                            <td><span class="badge-tag">단위용량</span></td>
-                            <td>개당 단위값 (입력)</td>
-                            <td><strong>100</strong> (또는 125)</td>
-                            <td>치약/식품 단위가격 기준 (보통 100g)</td>
-                        </tr>
-                        <tr>
-                            <td>16</td>
-                            <td><span class="badge-tag">판매개수</span></td>
-                            <td>팩수량</td>
-                            <td><strong>1</strong></td>
-                            <td>소비자 구매 결제 묶음 단위 (1세트=1개)</td>
-                        </tr>
-                        <tr>
-                            <td>17</td>
-                            <td><span class="badge-tag">포장단위</span></td>
-                            <td>기본 포장 단위</td>
-                            <td><strong>125g</strong></td>
-                            <td>낱개 포장 단위 중량</td>
-                        </tr>
-                        <tr>
-                            <td>18</td>
-                            <td><span class="badge-tag">개당 구성 수량</span></td>
-                            <td>팩구성수량</td>
-                            <td><strong>4</strong></td>
-                            <td>세트 안 구성품 총 개수</td>
-                        </tr>
-                    </tbody>
+        </section>
+        <section class="card step-card disabled" id="step2">
+            <div class="step-header"><div class="step-number">2</div><div><h2>주차 선택</h2><p class="step-desc">행사기획 주차를 선택하세요</p></div></div>
+            <div class="tab-grid" id="tabGrid"></div>
+        </section>
+        <section class="card step-card disabled" id="step3">
+            <div class="step-header"><div class="step-number">3</div><div><h2>상품 선택</h2><p class="step-desc">제안서에 포함할 상품을 선택하세요</p></div></div>
+            <div class="product-toolbar">
+                <div class="toolbar-left">
+                    <button class="btn btn-sm" onclick="selectAll()">전체 선택</button>
+                    <button class="btn btn-sm btn-outline" onclick="deselectAll()">전체 해제</button>
+                    <span class="selected-count" id="selectedCount">0개 선택</span>
+                </div>
+                <div class="toolbar-right"><input type="text" class="search-input" placeholder="상품명 검색..." id="searchInput" oninput="filterProducts()"></div>
+            </div>
+            <div class="product-table-wrap">
+                <table class="product-table" id="productTable">
+                    <thead><tr>
+                        <th class="th-check"><input type="checkbox" id="checkAll" onchange="toggleAll(this)"></th>
+                        <th>품목코드</th><th>카테고리</th><th>상품명</th>
+                        <th class="th-num">소비자가</th><th class="th-num">행사가</th><th class="th-num">마진율</th>
+                    </tr></thead>
+                    <tbody id="productBody"></tbody>
                 </table>
+            </div>
+        </section>
+        <section class="card step-card disabled" id="step4">
+            <div class="step-header"><div class="step-number">4</div><div><h2>채널 선택 & 제안서 생성</h2><p class="step-desc">생성할 채널을 선택하고 제안서를 만드세요</p></div></div>
+            <div class="channel-grid" id="channelGrid"></div>
+            <div class="filename-pattern-box" style="margin-top: 20px; margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border-color);">
+                <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-secondary);">💾 다운로드 파일명 형식 설정</label>
+                <input type="text" id="filenamePatternInput" class="search-input" placeholder="예: 주식회사 가울_{채널명}_{카테고리}_{오늘날짜}" style="width: 100%; box-sizing: border-box; background: var(--bg-card); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; color: var(--text-main); font-size: 13px;" value="주식회사 가울_{채널명}_{카테고리}_{오늘날짜}">
+                <p style="font-size: 11px; color: var(--text-muted); margin-top: 5px; margin-bottom: 0;">치환 키워드: <code style="background: rgba(0,0,0,0.2); padding: 2px 4px; border-radius: 3px; color: #10B981;">{채널명}</code>, <code style="background: rgba(0,0,0,0.2); padding: 2px 4px; border-radius: 3px; color: #10B981;">{카테고리}</code>, <code style="background: rgba(0,0,0,0.2); padding: 2px 4px; border-radius: 3px; color: #10B981;">{오늘날짜}</code></p>
+            </div>
+            <div class="generate-actions"><button class="btn btn-primary btn-lg" onclick="generateProposals()"><span class="btn-icon">⚡</span> 제안서 생성</button></div>
+        </section>
+        <section class="card step-card" id="step5" style="display:none">
+            <div class="step-header"><div class="step-number success">✓</div><div><h2>생성 완료!</h2><p class="step-desc">제안서가 성공적으로 생성되었습니다</p></div></div>
+            <div class="result-grid" id="resultGrid"></div>
+            <div class="generate-actions"><button class="btn btn-primary btn-lg" onclick="downloadAll()"><span class="btn-icon">📦</span> 전체 ZIP 다운로드</button></div>
+        </section>
+    </main>
+
+    <!-- ==================== PAGE: 매핑 설정 ==================== -->
+    <main class="main page-content" id="page-mapping" style="display:none">
+        <!-- 파일 업로드 영역 -->
+        <section class="card">
+            <div class="step-header"><div class="step-number active">🔗</div><div><h2>컬럼 매핑 설정</h2><p class="step-desc">마스터 파일의 컬럼을 채널 양식에 드래그하여 매핑하세요</p></div></div>
+            <div class="mapping-upload-row">
+                <div class="mapping-upload-box">
+                    <label class="upload-label">📊 마스터 파일 (소스)</label>
+                    <div class="mini-upload" id="masterUploadZone">
+                        <span id="masterFileName">파일을 선택하세요</span>
+                        <button class="btn btn-sm" onclick="document.getElementById('masterFileInput').click()">선택</button>
+                        <input type="file" id="masterFileInput" accept=".xlsx,.xls" hidden>
+                    </div>
+                    <select class="sheet-select" id="masterSheetSelect" style="display:none" onchange="onMasterSheetChange()">
+                        <option value="">시트 선택...</option>
+                    </select>
+                </div>
+                <div class="mapping-upload-box">
+                    <label class="upload-label">📋 채널 양식 (타겟)</label>
+                    <div class="mini-upload" id="templateUploadZone">
+                        <span id="templateFileName">파일을 선택하세요</span>
+                        <button class="btn btn-sm" onclick="document.getElementById('templateFileInput').click()">선택</button>
+                        <input type="file" id="templateFileInput" accept=".xlsx,.xls" hidden>
+                    </div>
+                    <select class="sheet-select" id="templateSheetSelect" style="display:none" onchange="onTemplateSheetChange()">
+                        <option value="">시트 선택...</option>
+                    </select>
+                    <div class="header-row-config" id="headerRowConfig" style="display:none">
+                        <label>헤더 행 번호:</label>
+                        <input type="number" id="headerRowInput" class="header-row-input" value="1" min="1" max="100" onchange="onHeaderRowChange()">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 매핑 영역 -->
+        <section class="card" id="mappingArea" style="display:none">
+            <div class="mapping-toolbar">
+                <div class="toolbar-left">
+                    <h3 class="mapping-title">📌 양식 기반 컬럼 매핑</h3>
+                    <span class="mapping-count" id="mappingCount">0개 매핑됨</span>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn btn-sm btn-outline" style="margin-right: 8px;" onclick="previewMappingData()">👁️ 매핑 결과 미리보기</button>
+                    <button class="btn btn-sm" onclick="clearAllMappings()">초기화</button>
+                    <button class="btn btn-sm btn-primary" onclick="saveMapping()">💾 저장</button>
+                </div>
+            </div>
+            <!-- 카테고리 분리 옵션 -->
+            <div class="category-split-option" id="categorySplitOption" style="display:flex; align-items:center; gap:14px; padding:10px 16px; background: var(--surface-2, #1e293b); border-radius:8px; margin: 0 0 12px 0; font-size:13px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; color:var(--text);">
+                    <input type="checkbox" id="splitByCategoryCheck" style="width:16px; height:16px; cursor:pointer;" onchange="toggleCategoryColInput()">
+                    📂 카테고리별 제안서 분리 생성
+                </label>
+                <div id="categoryColWrap" style="display:none; align-items:center; gap:8px;">
+                    <label style="color: var(--text-muted, #94a3b8);">카테고리 열 문자 (비워두면 자동 탐색):</label>
+                    <input type="text" id="categoryColInput" placeholder="예: C" maxlength="3"
+                        style="width:60px; padding:4px 8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:13px; text-align:center; text-transform:uppercase;">
+                </div>
+            </div>
+
+            <div class="mapping-container-dual">
+                <!-- 마스터 파일 프리뷰 (왼쪽) -->
+                <div class="spreadsheet-panel">
+                    <div class="panel-header-preview">
+                        <span class="panel-title">📊 마스터 파일 (열 문자 [A, B, C...] 드래그)</span>
+                    </div>
+                    <div class="spreadsheet-wrap" id="masterSpreadsheet">
+                        <!-- Spreadsheet Grid loads here -->
+                    </div>
+                </div>
+
+                <!-- 채널 양식 프리뷰 (오른쪽) -->
+                <div class="spreadsheet-panel">
+                    <div class="panel-header-preview">
+                        <span class="panel-title">📋 채널 제안서 양식 (임의의 셀에 드롭하여 매핑 설정)</span>
+                    </div>
+                    <div class="spreadsheet-wrap" id="templateSpreadsheet">
+                        <!-- Spreadsheet Grid loads here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 저장된 매핑 목록 -->
+        <section class="card">
+            <div class="step-header"><div class="step-number">📂</div><div><h2>저장된 매핑 프리셋</h2><p class="step-desc">저장된 매핑 설정을 관리합니다</p></div></div>
+            <div class="preset-list" id="presetList">
+                <p class="empty-text">저장된 매핑이 없습니다</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- 매핑 상세 설정 모달 -->
+    <div class="modal-backdrop" id="mappingModal" style="display: none;">
+        <div class="modal-content">
+            <h3 class="modal-title" id="modalTitle">🔧 셀 매핑 상세 설정</h3>
+            <div class="modal-body">
+                <input type="hidden" id="modalTargetCell">
+                
+                <div class="form-group-modal">
+                    <label class="modal-label">매핑 데이터 소스</label>
+                    <select class="custom-preset-select" style="margin-left:0; width:100%" id="modalSourceType" onchange="toggleModalSourceInputs()">
+                        <option value="column">마스터 파일 열에서 가져오기</option>
+                        <option value="formula">수식 계산 (예: {소비자가} * 0.8)</option>
+                        <option value="fixed">직접 고정값 입력</option>
+                    </select>
+                </div>
+                
+                <!-- 소스 열 선택 -->
+                <div class="form-group-modal" id="modalColSelectWrap" style="margin-top: 14px;">
+                    <label class="modal-label">마스터 소스 열 선택</label>
+                    <select class="custom-preset-select" style="margin-left:0; width:100%" id="modalSourceCol">
+                        <!-- 마스터 열 옵션들이 동적으로 로드됨 -->
+                    </select>
+                </div>
+                
+                <!-- 수식 입력 -->
+                <div class="form-group-modal" id="modalFormulaWrap" style="margin-top: 14px; display: none;">
+                    <label class="modal-label">수식 입력 ({H} 등 대괄호 안에 마스터 열 문자를 넣으세요)</label>
+                    <input type="text" id="modalFormulaInput" placeholder="예: {H} * 0.8" class="custom-preset-select" style="margin-left:0; width:100%">
+                </div>
+                
+                <!-- 고정값 입력 -->
+                <div class="form-group-modal" id="modalFixedWrap" style="margin-top: 14px; display: none;">
+                    <label class="modal-label">고정값 입력</label>
+                    <input type="text" id="modalFixedInput" placeholder="예: 주식회사 가울" class="custom-preset-select" style="margin-left:0; width:100%">
+                </div>
+
+                <div class="form-group-modal" style="margin-top: 14px;">
+                    <label class="modal-label">채우기 모드 (Fill Mode)</label>
+                    <select class="custom-preset-select" style="margin-left:0; width:100%" id="modalFillMode">
+                        <option value="down">행 방향으로 연속 채우기 (아래로 채우기)</option>
+                        <option value="single">단일 셀만 채우기 (여러 상품 시 시트 복사)</option>
+                    </select>
+                </div>
+
+                <div class="form-group-modal" style="margin-top: 14px;">
+                    <label class="modal-label">데이터 표시 서식 (Format)</label>
+                    <select class="custom-preset-select" style="margin-left:0; width:100%" id="modalFormat">
+                        <option value="">기본값 (서식 없음)</option>
+                        <option value="comma">천단위 쉼표 추가 (#,##0)</option>
+                        <option value="percent">백분율 표시 (0.0%)</option>
+                        <option value="date_yyyy_mm_dd">날짜 형식 (YYYY-MM-DD)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-outline" onclick="closeMappingModal()">취소</button>
+                <button class="btn btn-primary" onclick="saveCellMappingConfig()">적용</button>
             </div>
         </div>
     </div>
 
-    <script>
-        let parsedWorkbook = null;
-        let activeSheetData = [];
+    <footer class="footer"><p>© 2026 주식회사 가울 · 제안서 자동화 시스템 v1.0</p></footer>
+    <div class="loading-overlay" id="loadingOverlay" style="display:none"><div class="spinner"></div><p id="loadingText">처리중...</p></div>
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
-            event.target.classList.add('active');
-            document.getElementById('tab-' + tabId).classList.add('active');
-        }
-
-        function handleFileUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            document.getElementById('fileInfo').innerText = `📄 업로드됨: ${file.name}`;
-            document.getElementById('fileInfo').style.display = 'block';
-
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const data = new Uint8Array(evt.target.result);
-                parsedWorkbook = XLSX.read(data, { type: 'array' });
-
-                renderSheetPills();
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function renderSheetPills() {
-            const container = document.getElementById('sheetPills');
-            container.innerHTML = '';
-
-            parsedWorkbook.SheetNames.forEach((name, idx) => {
-                const pill = document.createElement('div');
-                pill.className = `sheet-pill ${idx === 0 ? 'active' : ''}`;
-                pill.innerText = name;
-                pill.onclick = () => selectSheet(name, pill);
-                container.appendChild(pill);
-            });
-
-            document.getElementById('sheetSelectCard').style.display = 'block';
-            selectSheet(parsedWorkbook.SheetNames[0], container.children[0]);
-        }
-
-        function selectSheet(sheetName, pillEl) {
-            document.querySelectorAll('.sheet-pill').forEach(p => p.classList.remove('active'));
-            if(pillEl) pillEl.classList.add('active');
-
-            const ws = parsedWorkbook.Sheets[sheetName];
-            const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
-
-            // 파싱
-            activeSheetData = [];
-            for (let i = 1; i < json.length; i++) {
-                const row = json[i];
-                if (!row || row.length === 0) continue;
-                
-                activeSheetData.push({
-                    category: row[2] || row[1] || '일반',
-                    name: row[4] || row[3] || row[0] || '상품',
-                    price: row[6] || 0,
-                    salePrice: row[7] || row[8] || 0,
-                    supplyPrice: row[9] || 0,
-                    checked: true
-                });
-            }
-
-            renderProducts();
-        }
-
-        function renderProducts() {
-            const tbody = document.getElementById('productTbody');
-            tbody.innerHTML = '';
-
-            activeSheetData.forEach((p, idx) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><input type="checkbox" class="prod-chk" ${p.checked ? 'checked' : ''} onchange="activeSheetData[${idx}].checked = this.checked"></td>
-                    <td><span class="badge-tag">${p.category}</span></td>
-                    <td><strong>${p.name}</strong></td>
-                    <td>${Number(p.price).toLocaleString()}원</td>
-                    <td>${Number(p.salePrice).toLocaleString()}원</td>
-                    <td>${Number(p.supplyPrice).toLocaleString()}원</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            document.getElementById('productCard').style.display = 'block';
-        }
-
-        function toggleSelectAll(checked) {
-            activeSheetData.forEach(p => p.checked = checked);
-            document.querySelectorAll('.prod-chk').forEach(c => c.checked = checked);
-        }
-
-        function generateProposals() {
-            const selectedProds = activeSheetData.filter(p => p.checked);
-            if (selectedProds.length === 0) {
-                alert('제안서에 포함할 상품을 최소 1개 이상 선택해 주세요.');
-                return;
-            }
-
-            const zip = new JSZip();
-
-            // 채널별 엑셀 생성
-            document.querySelectorAll('.channel-chk:checked').forEach(chk => {
-                const chn = chk.value;
-                const wsData = [
-                    ['채널명', '카테고리', '상품명', '소비자가', '행사가', '공급가']
-                ];
-                selectedProds.forEach(p => {
-                    wsData.push([chn.toUpperCase(), p.category, p.name, p.price, p.salePrice, p.supplyPrice]);
-                });
-
-                const ws = XLSX.utils.aoa_to_sheet(wsData);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, '제안서');
-
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                zip.file(`가울_${chn.toUpperCase()}_제안서.xlsx`, wbout);
-            });
-
-            zip.generateAsync({ type: 'blob' }).then(function(content) {
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(content);
-                a.download = `가울_채널별_제안서_일괄.zip`;
-                a.click();
-            });
-        }
-    </script>
+    <script src="/static/app.js"></script>
 </body>
 </html>
